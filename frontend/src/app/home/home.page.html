@@ -253,26 +253,41 @@
     <!-- แดชบอร์ดสรุปยอดของวันที่เลือก -->
     <div class="supervisor-summary-grid">
       <div class="summary-stat-card active-card" *ngIf="isTodaySelected()">
-        <div class="stat-icon">🟢</div>
+        <div class="stat-icon-wrapper active">
+          <span class="pulse-dot-sm"></span>
+          <span class="icon-emoji">🟢</span>
+        </div>
         <div class="stat-info">
-          <span class="stat-num">{{ activeWorkingCount }}</span>
-          <span class="stat-label">กำลังทำงาน (ขณะนี้)</span>
+          <div class="stat-num-row">
+            <span class="stat-num">{{ activeWorkingCount }}</span>
+            <span class="stat-unit">คน</span>
+          </div>
+          <span class="stat-label">กำลังปฏิบัติงาน</span>
         </div>
       </div>
 
-      <div class="summary-stat-card total-card">
-        <div class="stat-icon">👥</div>
+      <div class="summary-stat-card total-card" [class.span-all]="!isTodaySelected()">
+        <div class="stat-icon-wrapper total">
+          <span class="icon-emoji">👥</span>
+        </div>
         <div class="stat-info">
-          <span class="stat-num">{{ filteredSupervisorLogs.length }}</span>
+          <div class="stat-num-row">
+            <span class="stat-num">{{ filteredSupervisorLogs.length }}</span>
+            <span class="stat-unit">รายการ</span>
+          </div>
           <span class="stat-label">พนักงานในวันที่เลือก</span>
         </div>
       </div>
 
-      <div class="summary-stat-card time-card">
-        <div class="stat-icon">⏱️</div>
+      <div class="summary-stat-card time-card full-width">
+        <div class="stat-icon-wrapper time">
+          <span class="icon-emoji">⏱️</span>
+        </div>
         <div class="stat-info">
-          <span class="stat-num">{{ formatDuration(dailyTotalDurationMinutes) }}</span>
-          <span class="stat-label">เวลางานรวมในวันนั้น</span>
+          <div class="stat-num-row">
+            <span class="stat-num duration-text">{{ formatDuration(dailyTotalDurationMinutes) }}</span>
+          </div>
+          <span class="stat-label">รวมเวลาปฏิบัติงานของพนักงานในวันนั้น</span>
         </div>
       </div>
     </div>

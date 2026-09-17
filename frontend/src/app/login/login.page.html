@@ -18,39 +18,45 @@
 
       <ion-card-content>
         <form (ngSubmit)="onLogin()">
-          <ion-item lines="inset" class="custom-input-item">
-            <ion-icon name="person-outline" slot="start" color="primary"></ion-icon>
-            <ion-label position="floating">ชื่อผู้ใช้ (Username)</ion-label>
-            <ion-input
-              [(ngModel)]="username"
-              name="username"
-              type="text"
-              required
-              autocomplete="username"
-              placeholder="เช่น staff1, admin"
-            ></ion-input>
-          </ion-item>
+          <div class="form-field-group">
+            <label class="custom-field-label">ชื่อผู้ใช้ (Username)</label>
+            <div class="custom-input-box">
+              <ion-icon name="person-outline" class="input-lead-icon"></ion-icon>
+              <input
+                [(ngModel)]="username"
+                name="username"
+                type="text"
+                class="styled-text-input"
+                placeholder="เช่น supervisor, staff1, admin"
+                required
+                autocomplete="username"
+              />
+            </div>
+          </div>
 
-          <ion-item lines="inset" class="custom-input-item">
-            <ion-icon name="lock-closed-outline" slot="start" color="primary"></ion-icon>
-            <ion-label position="floating">รหัสผ่าน (Password)</ion-label>
-            <ion-input
-              [(ngModel)]="password"
-              name="password"
-              [type]="showPassword ? 'text' : 'password'"
-              required
-              autocomplete="current-password"
-            ></ion-input>
-            <ion-button
-              slot="end"
-              fill="clear"
-              color="medium"
-              (click)="showPassword = !showPassword"
-              tabindex="-1"
-            >
-              <ion-icon [name]="showPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
-            </ion-button>
-          </ion-item>
+          <div class="form-field-group">
+            <label class="custom-field-label">รหัสผ่าน (Password)</label>
+            <div class="custom-input-box">
+              <ion-icon name="lock-closed-outline" class="input-lead-icon"></ion-icon>
+              <input
+                [(ngModel)]="password"
+                name="password"
+                [type]="showPassword ? 'text' : 'password'"
+                class="styled-text-input"
+                placeholder="กรอกรหัสผ่าน"
+                required
+                autocomplete="current-password"
+              />
+              <button
+                type="button"
+                class="pwd-toggle-btn"
+                (click)="showPassword = !showPassword"
+                tabindex="-1"
+              >
+                <ion-icon [name]="showPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+              </button>
+            </div>
+          </div>
 
           <div class="submit-area">
             <ion-button
