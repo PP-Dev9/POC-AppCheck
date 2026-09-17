@@ -43,6 +43,8 @@ import {
   calendarOutline,
   chevronBackOutline,
   chevronForwardOutline,
+  chevronUpOutline,
+  chevronDownOutline,
   informationCircleOutline,
   todayOutline,
 } from 'ionicons/icons';
@@ -60,6 +62,16 @@ export interface AttendanceLog {
   status: string;
   checkin_distance?: number;
   checkout_distance?: number | null;
+}
+
+export interface UserDailyAttendance {
+  user_id: string;
+  user_name: string;
+  is_currently_working: boolean;
+  total_duration_minutes: number;
+  sessions_count: number;
+  sessions: AttendanceLog[];
+  is_expanded?: boolean;
 }
 
 @Component({
@@ -113,11 +125,12 @@ export class HomePage implements OnInit, OnDestroy {
   activeWorkingCount = 0;
   isRefreshingSupervisor = false;
 
-  // Supervisor Date Filter
+  // Supervisor Date Filter & Grouping
   selectedDate: string = '';
   minMonthDate: string = '';
   maxMonthDate: string = '';
   filteredSupervisorLogs: AttendanceLog[] = [];
+  groupedSupervisorUsers: UserDailyAttendance[] = [];
   dailyTotalDurationMinutes: number = 0;
 
   // Mock test location for testing without physical GPS device
@@ -153,6 +166,8 @@ export class HomePage implements OnInit, OnDestroy {
       calendarOutline,
       chevronBackOutline,
       chevronForwardOutline,
+      chevronUpOutline,
+      chevronDownOutline,
       informationCircleOutline,
       todayOutline,
     });
@@ -217,6 +232,7 @@ export class HomePage implements OnInit, OnDestroy {
     this.logs = [];
     this.supervisorLogs = [];
     this.filteredSupervisorLogs = [];
+    this.groupedSupervisorUsers = [];
     this.dailyTotalDurationMinutes = 0;
     this.activeWorkingCount = 0;
     this.elapsedTimeString = '00:00:00';
@@ -306,10 +322,55 @@ export class HomePage implements OnInit, OnDestroy {
       );
     }
 
+    // Group logs by user_id to consolidate multiple check-ins into 1 card per user
+    const userMap = new Map<string, UserDailyAttendance>();
+
+    for (const log of this.filteredSupervisorLogs) {
+      const uid = log.user_id;
+      if (!userMap.has(uid)) {
+        userMap.set(uid, {
+          user_id: uid,
+          user_name: log.user_name || uid,
+          is_currently_working: false,
+          total_duration_minutes: 0,
+          sessions_count: 0,
+          sessions: [],
+          is_expanded: true,
+        });
+      }
+
+      const userGroup = userMap.get(uid)!;
+      userGroup.sessions.push(log);
+      userGroup.sessions_count++;
+
+      if (log.status === 'CHECKED_IN') {
+        userGroup.is_currently_working = true;
+      }
+      if (log.duration_minutes) {
+        userGroup.total_duration_minutes += log.duration_minutes;
+      }
+    }
+
+    // Sort sessions in each userGroup chronologically (earliest first)
+    for (const group of userMap.values()) {
+      group.sessions.sort((a, b) => (a.checkin_time || '').localeCompare(b.checkin_time || ''));
+    }
+
+    // Sort: active workers first, then alphabetical by name
+    this.groupedSupervisorUsers = Array.from(userMap.values()).sort((a, b) => {
+      if (a.is_currently_working && !b.is_currently_working) return -1;
+      if (!a.is_currently_working && b.is_currently_working) return 1;
+      return a.user_name.localeCompare(b.user_name);
+    });
+
     // Calculate total minutes worked for employees on this day
     this.dailyTotalDurationMinutes = this.filteredSupervisorLogs.reduce((acc, log) => {
       return acc + (log.duration_minutes || 0);
     }, 0);
+  }
+
+  toggleUserExpand(userGroup: UserDailyAttendance) {
+    userGroup.is_expanded = !userGroup.is_expanded;
   }
 
   getThaiFormattedDate(dateStr: string): string {

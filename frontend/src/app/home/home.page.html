@@ -272,10 +272,10 @@
         </div>
         <div class="stat-info">
           <div class="stat-num-row">
-            <span class="stat-num">{{ filteredSupervisorLogs.length }}</span>
-            <span class="stat-unit">รายการ</span>
+            <span class="stat-num">{{ groupedSupervisorUsers.length }}</span>
+            <span class="stat-unit">คน</span>
           </div>
-          <span class="stat-label">ลงเวลาวันนี้</span>
+          <span class="stat-label">พนักงานวันนี้</span>
         </div>
       </div>
 
@@ -296,7 +296,7 @@
     <div class="section-title-row">
       <h3>
         <ion-icon name="people-outline"></ion-icon>
-        บันทึกเวลาพนักงาน ({{ filteredSupervisorLogs.length }} รายการ)
+        รายชื่อพนักงาน ({{ groupedSupervisorUsers.length }} คน)
       </h3>
       <button class="refresh-btn" (click)="fetchSupervisorLogs()" [disabled]="isRefreshingSupervisor">
         <ion-icon name="refresh-outline" [class.spin]="isRefreshingSupervisor"></ion-icon>
@@ -304,49 +304,102 @@
       </button>
     </div>
 
-    <!-- รายการประวัติพนักงานประจำวันที่เลือก -->
-    <div *ngIf="filteredSupervisorLogs.length === 0" class="empty-logs">
+    <!-- รายการประวัติพนักงานประจำวันที่เลือก (แสดงราย user) -->
+    <div *ngIf="groupedSupervisorUsers.length === 0" class="empty-logs">
       <ion-icon name="calendar-outline"></ion-icon>
       <p>ไม่มีบันทึกการลงเวลาใน{{ getThaiFormattedDate(selectedDate) }}</p>
       <small>ลองเปลี่ยนวันที่หรือกดปุ่ม "วันนี้" เพื่อดูรายการปัจจุบัน</small>
     </div>
 
-    <div *ngIf="filteredSupervisorLogs.length > 0" class="logs-list">
-      <div *ngFor="let item of filteredSupervisorLogs" class="log-card" [class.active-working]="item.status === 'CHECKED_IN'">
-        
-        <div class="log-card-header">
-          <div class="employee-title">
-            <strong>{{ item.user_name || item.user_id }}</strong>
-            <span class="emp-id">({{ item.user_id }})</span>
+    <div *ngIf="groupedSupervisorUsers.length > 0" class="user-grouped-list">
+      <div 
+        *ngFor="let userGroup of groupedSupervisorUsers" 
+        class="user-attendance-card" 
+        [class.active-working]="userGroup.is_currently_working"
+      >
+        <!-- Header: User Info + Status + Expand Toggle -->
+        <div class="user-card-header" (click)="toggleUserExpand(userGroup)">
+          <div class="user-avatar-badge" [class.working]="userGroup.is_currently_working">
+            <span class="avatar-icon">👤</span>
+            <span class="status-indicator" *ngIf="userGroup.is_currently_working"></span>
           </div>
 
-          <span class="status-badge" [class.working]="item.status === 'CHECKED_IN'" [class.done]="item.status === 'COMPLETED'">
-            {{ item.status === 'CHECKED_IN' ? '🟢 กำลังทำงาน' : '🏁 ออกงานแล้ว' }}
+          <div class="user-main-info">
+            <div class="user-name-row">
+              <strong class="user-name">{{ userGroup.user_name }}</strong>
+              <span class="user-id">({{ userGroup.user_id }})</span>
+            </div>
+            <div class="user-sub-info">
+              <span class="session-count-chip">
+                {{ userGroup.sessions_count }} รอบ
+              </span>
+              <span class="today-total-time">
+                รวม: {{ formatDuration(userGroup.total_duration_minutes) }}
+              </span>
+            </div>
+          </div>
+
+          <div class="header-right-actions">
+            <span class="status-badge" [class.working]="userGroup.is_currently_working" [class.done]="!userGroup.is_currently_working">
+              {{ userGroup.is_currently_working ? '🟢 กำลังทำงาน' : '🏁 ออกงานแล้ว' }}
+            </span>
+            <button class="expand-btn" type="button" [title]="userGroup.is_expanded ? 'ย่อรายละเอียด' : 'ดูรอบการลงเวลา'">
+              <ion-icon [name]="userGroup.is_expanded ? 'chevron-up-outline' : 'chevron-down-outline'"></ion-icon>
+            </button>
+          </div>
+        </div>
+
+        <!-- Total Work Time Banner for this user -->
+        <div class="user-duration-banner" [class.working]="userGroup.is_currently_working">
+          <div class="duration-label-group">
+            <span class="duration-icon">⏳</span>
+            <span class="label">รวมเวลาทั้งวัน ({{ userGroup.sessions_count }} รอบ):</span>
+          </div>
+          <span class="val duration-val">
+            {{ formatDuration(userGroup.total_duration_minutes) }}
+            <span *ngIf="userGroup.is_currently_working" class="counting-hint">(+กำลังทำงาน)</span>
           </span>
         </div>
 
-        <div class="log-details-grid">
-          <div class="log-detail-item">
-            <span class="label">🕒 เวลาเข้างาน:</span>
-            <span class="val">{{ item.checkin_time }}</span>
+        <!-- Sessions Container (Expanded / Collapsed) -->
+        <div class="sessions-container" *ngIf="userGroup.is_expanded">
+          <div class="sessions-header">
+            <span>รายละเอียดการเข้า-ออกแต่ละรอบ</span>
           </div>
 
-          <div class="log-detail-item">
-            <span class="label">🛑 เวลาออกงาน:</span>
-            <span class="val" *ngIf="item.checkout_time">{{ item.checkout_time }}</span>
-            <span class="val pending" *ngIf="!item.checkout_time">ยังไม่ได้ออกงาน</span>
-          </div>
+          <div 
+            *ngFor="let session of userGroup.sessions; let i = index" 
+            class="session-item"
+            [class.session-active]="session.status === 'CHECKED_IN'"
+          >
+            <div class="session-top-row">
+              <span class="session-round-badge" [class.active-badge]="session.status === 'CHECKED_IN'">
+                รอบที่ {{ i + 1 }}
+                <span *ngIf="session.status === 'CHECKED_IN'" class="live-tag">กำลังทำงาน</span>
+              </span>
+              <span class="session-duration-tag">
+                {{ session.duration_minutes !== null ? formatDuration(session.duration_minutes) : 'กำลังนับเวลา...' }}
+              </span>
+            </div>
 
-          <div class="log-detail-item duration-item">
-            <span class="label">⏳ ระยะเวลาทำงาน:</span>
-            <span class="val duration-val">
-              {{ item.duration_minutes !== null ? formatDuration(item.duration_minutes) : 'กำลังนับเวลา...' }}
-            </span>
-          </div>
+            <div class="session-times-grid">
+              <div class="session-time-col in-col">
+                <span class="col-label">🕒 เข้างาน:</span>
+                <span class="col-val">{{ session.checkin_time }}</span>
+                <span class="col-sub" *ngIf="session.checkin_distance !== undefined">
+                  📍 ห่าง {{ session.checkin_distance }} ม.
+                </span>
+              </div>
 
-          <div class="log-detail-item" *ngIf="item.checkin_distance !== undefined">
-            <span class="label">📍 พิกัดเข้างาน:</span>
-            <span class="val">ห่าง {{ item.checkin_distance }} ม.</span>
+              <div class="session-time-col out-col">
+                <span class="col-label">🛑 ออกงาน:</span>
+                <span class="col-val" *ngIf="session.checkout_time">{{ session.checkout_time }}</span>
+                <span class="col-val pending" *ngIf="!session.checkout_time">ยังไม่ออกงาน</span>
+                <span class="col-sub" *ngIf="session.checkout_distance !== undefined && session.checkout_distance !== null">
+                  📍 ห่าง {{ session.checkout_distance }} ม.
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
