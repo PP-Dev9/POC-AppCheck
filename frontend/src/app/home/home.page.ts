@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { getApiBaseUrl } from '../api.config';
 import {
   IonHeader,
   IonToolbar,
@@ -73,8 +74,9 @@ interface CheckInSuccessResponse {
   ],
 })
 export class HomePage implements OnInit {
-  // Backend API URL: Using host LAN IP so mobile device on same Wi-Fi connects seamlessly
-  private readonly API_URL = 'http://192.168.0.124:8000/api/checkin';
+  private get API_URL(): string {
+    return `${getApiBaseUrl()}/api/checkin`;
+  }
 
   currentUser: UserProfile | null = null;
   isLoading = false;

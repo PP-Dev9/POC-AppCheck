@@ -3,6 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
 
+import { getApiBaseUrl } from '../api.config';
+
 export interface UserProfile {
   user_id: string;
   username: string;
@@ -21,8 +23,9 @@ export interface LoginResponse {
   providedIn: 'root'
 })
 export class AuthService {
-  // Use host LAN IP so both mobile app over Wi-Fi and browser connect cleanly
-  private readonly API_URL = 'http://192.168.0.124:8000/api/login';
+  private get API_URL(): string {
+    return `${getApiBaseUrl()}/api/login`;
+  }
   private readonly STORAGE_KEY = 'attendance_user_session';
 
   constructor(private http: HttpClient, private router: Router) {}

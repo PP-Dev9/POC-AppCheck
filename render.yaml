@@ -1,0 +1,25 @@
+services:
+  # Backend API Service (FastAPI)
+  - type: web
+    name: attendance-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    region: singapore
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+
+  # Frontend Web Service (Angular / Ionic)
+  - type: web
+    name: attendance-frontend
+    runtime: static
+    buildCommand: cd frontend && npm install --legacy-peer-deps && npm run build
+    staticPublishPath: ./frontend/www
+    plan: free
+    region: singapore
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
