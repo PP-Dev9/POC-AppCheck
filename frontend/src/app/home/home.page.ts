@@ -142,6 +142,23 @@ export class HomePage implements OnInit, OnDestroy {
   }
 
   async ngOnInit() {
+    await this.initSession();
+  }
+
+  async ionViewWillEnter() {
+    await this.initSession();
+  }
+
+  ngOnDestroy() {
+    this.resetState();
+  }
+
+  ionViewDidLeave() {
+    this.resetState();
+  }
+
+  private async initSession() {
+    this.resetState();
     this.currentUser = this.authService.getCurrentUser();
     if (!this.currentUser) {
       this.router.navigate(['/login'], { replaceUrl: true });
@@ -157,6 +174,8 @@ export class HomePage implements OnInit, OnDestroy {
       userLower === 'supervisor' ||
       userLower === 'admin';
 
+    this.currentTab = 'checkin';
+
     // Fetch personal attendance logs
     await this.fetchUserLogs();
 
@@ -166,8 +185,19 @@ export class HomePage implements OnInit, OnDestroy {
     }
   }
 
-  ngOnDestroy() {
+  private resetState() {
     this.stopTimer();
+    this.currentUser = null;
+    this.isSupervisorUser = false;
+    this.currentTab = 'checkin';
+    this.isCheckedIn = false;
+    this.checkInTime = null;
+    this.activeLog = null;
+    this.logs = [];
+    this.supervisorLogs = [];
+    this.activeWorkingCount = 0;
+    this.elapsedTimeString = '00:00:00';
+    this.isLoading = false;
   }
 
   /**
@@ -178,6 +208,25 @@ export class HomePage implements OnInit, OnDestroy {
     if (this.currentTab === 'supervisor') {
       this.fetchSupervisorLogs();
     }
+  }
+
+  /**
+   * Parse "YYYY-MM-DD HH:mm:ss" string to local Date object
+   */
+  private parseDateString(dateStr: string | null | undefined): Date {
+    if (!dateStr) return new Date();
+    const parts = dateStr.match(/(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
+    if (parts) {
+      return new Date(
+        parseInt(parts[1], 10),
+        parseInt(parts[2], 10) - 1,
+        parseInt(parts[3], 10),
+        parseInt(parts[4], 10),
+        parseInt(parts[5], 10),
+        parseInt(parts[6], 10)
+      );
+    }
+    return new Date(dateStr);
   }
 
   /**
@@ -196,7 +245,7 @@ export class HomePage implements OnInit, OnDestroy {
 
         if (this.isCheckedIn && this.activeLog) {
           this.checkInTime = this.activeLog.checkin_time;
-          this.startTimer(new Date(this.checkInTime.replace(' ', 'T')));
+          this.startTimer(this.parseDateString(this.checkInTime));
         } else {
           this.stopTimer();
         }
@@ -298,7 +347,7 @@ export class HomePage implements OnInit, OnDestroy {
 
       this.isCheckedIn = true;
       this.checkInTime = res.checkin_time;
-      this.startTimer(new Date());
+      this.startTimer(this.parseDateString(this.checkInTime));
 
       await this.showToast(
         `✅ ลงเวลาเข้างานสำเร็จ! ระยะห่าง ${res.distance_meters} ม.`,
@@ -319,40 +368,42 @@ export class HomePage implements OnInit, OnDestroy {
   }
 
   /**
-   * Main Check-out / Logout handler
-   * Requirement: ตอน logout ต้องมา logout ที่เดิม
+   * Simple Logout (ออกจากระบบ)
+   * เพียงแค่ออกจากระบบ session เท่านั้น ไม่บังคับลงเวลาออกงาน
    */
-  async onCheckOutOrLogout() {
-    if (!this.isCheckedIn) {
-      const alert = await this.alertCtrl.create({
-        header: 'ยืนยันออกจากระบบ',
-        message: 'คุณยังไม่ได้ลงเวลาเข้างาน ต้องการออกจากระบบใช่หรือไม่?',
-        buttons: [
-          { text: 'ยกเลิก', role: 'cancel' },
-          {
-            text: 'ออกจากระบบ',
-            handler: () => {
-              this.stopTimer();
-              this.authService.logout();
-            },
-          },
-        ],
-      });
-      await alert.present();
-      return;
-    }
-
-    // If currently checked in, MUST verify location at the same store
+  async onLogout() {
     const alert = await this.alertCtrl.create({
-      header: '📍 ยืนยันลงเวลาออกงาน & Logout',
-      message:
-        'เงื่อนไข: คุณต้องอยู่ที่สถานที่เดิม (เช็คอิน) เพื่อลงเวลาออกงานและออกจากระบบ',
+      header: 'ยืนยันออกจากระบบ',
+      message: 'คุณต้องการออกจากระบบใช่หรือไม่?',
       buttons: [
         { text: 'ยกเลิก', role: 'cancel' },
         {
-          text: 'ตรวจพิกัด & ออกจากระบบ',
+          text: 'ออกจากระบบ',
+          role: 'destructive',
           handler: () => {
-            this.executeCheckOutAndLogout();
+            this.resetState();
+            this.authService.logout();
+          },
+        },
+      ],
+    });
+    await alert.present();
+  }
+
+  /**
+   * Check-out handler (ลงเวลาออกงาน)
+   * ตรวจสอบพิกัด GPS ณ ร้าน และบันทึกเวลาเลิกงาน โดยไม่ออกจากระบบ
+   */
+  async onCheckOut() {
+    const alert = await this.alertCtrl.create({
+      header: '📍 ยืนยันลงเวลาออกงาน',
+      message: 'คุณต้องการลงเวลาออกงาน ณ เช็คอิน ใช่หรือไม่?',
+      buttons: [
+        { text: 'ยกเลิก', role: 'cancel' },
+        {
+          text: 'ยืนยันออกงาน',
+          handler: () => {
+            this.executeCheckOut();
           },
         },
       ],
@@ -363,15 +414,15 @@ export class HomePage implements OnInit, OnDestroy {
   /**
    * Execute checkout with location validation
    */
-  private async executeCheckOutAndLogout() {
+  private async executeCheckOut() {
     this.isLoading = true;
-    this.loadingMessage = 'กำลังตรวจสอบพิกัด GPS ณ สถานที่เดิม...';
+    this.loadingMessage = 'กำลังตรวจสอบพิกัด GPS เพื่อออกงาน...';
 
     try {
       const coords = await this.getCurrentLocation();
       this.lastCoords = coords;
 
-      this.loadingMessage = 'กำลังตรวจสอบความถูกต้องกับร้าน...';
+      this.loadingMessage = 'กำลังบันทึกเวลาออกงาน...';
 
       const payload = {
         user_id: this.currentUser?.user_id,
@@ -386,6 +437,7 @@ export class HomePage implements OnInit, OnDestroy {
 
       this.stopTimer();
       this.isCheckedIn = false;
+      this.activeLog = null;
 
       await this.showAlert(
         'ลงเวลาออกงานสำเร็จ 🎉',
@@ -394,8 +446,10 @@ export class HomePage implements OnInit, OnDestroy {
         )} (ระยะห่าง: ${res.distance_meters} ม.)`
       );
 
-      // Logout session
-      this.authService.logout();
+      await this.fetchUserLogs();
+      if (this.isSupervisorUser) {
+        await this.fetchSupervisorLogs();
+      }
     } catch (error: any) {
       await this.handleLocationError(error, 'ออกงาน');
     } finally {

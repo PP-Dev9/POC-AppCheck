@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap } from 'rxjs';
+import { Observable, BehaviorSubject, tap } from 'rxjs';
 
 import { getApiBaseUrl } from '../api.config';
 
@@ -28,13 +28,26 @@ export class AuthService {
   }
   private readonly STORAGE_KEY = 'attendance_user_session';
 
+  private currentUserSubject = new BehaviorSubject<UserProfile | null>(this.getStoredUser());
+  public currentUser$ = this.currentUserSubject.asObservable();
+
   constructor(private http: HttpClient, private router: Router) {}
 
-  login(username: string, password: string):Observable<LoginResponse> {
+  private getStoredUser(): UserProfile | null {
+    try {
+      const data = localStorage.getItem(this.STORAGE_KEY);
+      return data ? JSON.parse(data) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  login(username: string, password: string): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(this.API_URL, { username, password }).pipe(
       tap((res) => {
         if (res.status === 'success' && res.user) {
           localStorage.setItem(this.STORAGE_KEY, JSON.stringify(res.user));
+          this.currentUserSubject.next(res.user);
         }
       })
     );
@@ -42,15 +55,15 @@ export class AuthService {
 
   logout(): void {
     localStorage.removeItem(this.STORAGE_KEY);
-    this.router.navigate(['/login']);
+    this.currentUserSubject.next(null);
+    this.router.navigate(['/login'], { replaceUrl: true });
   }
 
   getCurrentUser(): UserProfile | null {
-    const data = localStorage.getItem(this.STORAGE_KEY);
-    return data ? JSON.parse(data) : null;
+    return this.getStoredUser();
   }
 
   isLoggedIn(): boolean {
-    return !!localStorage.getItem(this.STORAGE_KEY);
+    return !!this.getStoredUser();
   }
 }

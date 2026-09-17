@@ -78,6 +78,16 @@ export class LoginPage {
     }
   }
 
+  ionViewWillEnter() {
+    if (this.authService.isLoggedIn()) {
+      this.router.navigate(['/home'], { replaceUrl: true });
+      return;
+    }
+    this.username = '';
+    this.password = '';
+    this.isLoading = false;
+  }
+
   async onLogin() {
     if (!this.username || !this.password) return;
 

@@ -8,7 +8,7 @@
     </ion-title>
 
     <ion-buttons slot="end">
-      <ion-button (click)="onCheckOutOrLogout()" title="ออกจากระบบ">
+      <ion-button (click)="onLogout()" title="ออกจากระบบ">
         <ion-icon name="log-out-outline" slot="icon-only"></ion-icon>
       </ion-button>
     </ion-buttons>
@@ -119,13 +119,13 @@
         *ngIf="isCheckedIn"
         shape="round"
         class="checkin-circle-btn checkout-btn"
-        (click)="onCheckOutOrLogout()"
+        (click)="onCheckOut()"
         [disabled]="isLoading"
       >
         <div class="btn-inner" *ngIf="!isLoading">
           <ion-icon name="log-out-outline" class="btn-icon"></ion-icon>
           <span class="btn-title">Check-out</span>
-          <span class="btn-subtitle">กดเพื่อลงเวลาออกงาน<br><small>(ต้องอยู่สถานที่เดิม)</small></span>
+          <span class="btn-subtitle">กดเพื่อลงเวลาออกงาน</span>
         </div>
 
         <div class="btn-inner loading-inner" *ngIf="isLoading">
@@ -149,21 +149,30 @@
         </button>
       </div>
 
-      <div *ngIf="useMockLocation" class="mock-options">
-        <button
-          class="mock-choice-btn"
-          [class.selected]="mockMode === 'inside'"
-          (click)="mockMode = 'inside'"
-        >
-          📍 อยู่ในร้าน (0 ม.)
-        </button>
-        <button
-          class="mock-choice-btn"
-          [class.selected]="mockMode === 'outside'"
-          (click)="mockMode = 'outside'"
-        >
-          🚶 อยู่นอกร้าน (5 กม.)
-        </button>
+      <div class="mock-radios" *ngIf="useMockLocation">
+        <label class="mock-radio-label">
+          <input
+            type="radio"
+            name="mockMode"
+            value="inside"
+            [checked]="mockMode === 'inside'"
+            (change)="mockMode = 'inside'"
+          />
+          <span class="dot inside"></span>
+          <span>อยู่ที่ร้าน (ระยะ 1.55 ม. - ผ่าน)</span>
+        </label>
+
+        <label class="mock-radio-label">
+          <input
+            type="radio"
+            name="mockMode"
+            value="outside"
+            [checked]="mockMode === 'outside'"
+            (change)="mockMode = 'outside'"
+          />
+          <span class="dot outside"></span>
+          <span>อยู่นอกร้าน (ระยะ ~5 กม. - ไม่ผ่าน)</span>
+        </label>
       </div>
     </div>
 
@@ -183,9 +192,9 @@
         </ion-card-content>
       </ion-card>
 
-      <button class="logout-link-btn" (click)="onCheckOutOrLogout()">
+      <button class="logout-link-btn" (click)="onLogout()">
         <ion-icon name="log-out-outline"></ion-icon>
-        {{ isCheckedIn ? 'ลงเวลาออกงาน & ออกจากระบบ' : 'ออกจากระบบ' }}
+        ออกจากระบบ
       </button>
     </div>
 

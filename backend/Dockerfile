@@ -5,6 +5,7 @@ WORKDIR /app
 # Prevent Python from writing .pyc files & enable unbuffered logs
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV TZ="Asia/Bangkok"
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

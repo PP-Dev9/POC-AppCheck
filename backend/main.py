@@ -1,14 +1,23 @@
 import math
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import Optional, List
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+# Thailand / Bangkok Timezone (UTC+7)
+BANGKOK_TZ = timezone(timedelta(hours=7))
+
+def get_bangkok_now() -> datetime:
+    return datetime.now(BANGKOK_TZ)
+
+def get_bangkok_now_str() -> str:
+    return datetime.now(BANGKOK_TZ).strftime("%Y-%m-%d %H:%M:%S")
+
 app = FastAPI(
     title="CheckNgan Attendance API",
     description="API for Authentication and GPS Geofencing Check-in / Check-out at เช็คอิน",
-    version="2.1.0"
+    version="2.2.0"
 )
 
 # Enable CORS for Mobile App and Web
@@ -155,7 +164,7 @@ async def login(payload: LoginRequest):
             detail="ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง (Invalid username or password)"
         )
 
-    token = f"token-{user['user_id']}-{datetime.now().timestamp()}"
+    token = f"token-{user['user_id']}-{int(get_bangkok_now().timestamp())}"
 
     return LoginResponse(
         status="success",
@@ -185,7 +194,7 @@ async def check_in(payload: CheckInRequest):
         lon2=TARGET_LNG
     )
 
-    current_time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    current_time_str = get_bangkok_now_str()
 
     if distance <= ALLOWED_RADIUS_METERS:
         # Save attendance log
@@ -229,12 +238,12 @@ async def check_in(payload: CheckInRequest):
         )
 
 
-# --- Check-out Endpoint (Must be at the same location) ---
+# --- Check-out Endpoint (Must be at the location) ---
 @app.post(
     "/api/checkout",
     response_model=CheckOutSuccessResponse,
     status_code=status.HTTP_200_OK,
-    summary="GPS Check-out at Location (Must be at the same location)"
+    summary="GPS Check-out at Location (ลงเวลาออกงาน)"
 )
 async def check_out(payload: CheckOutRequest):
     distance = calculate_haversine_distance(
@@ -244,16 +253,16 @@ async def check_out(payload: CheckOutRequest):
         lon2=TARGET_LNG
     )
 
-    current_time = datetime.now()
+    current_time = get_bangkok_now()
     current_time_str = current_time.strftime("%Y-%m-%d %H:%M:%S")
 
-    # Constraint: Must logout at the same location!
+    # Constraint: Must be at target location to checkout!
     if distance > ALLOWED_RADIUS_METERS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={
                 "status": "failed",
-                "message": f"ไม่อนุญาตให้ออกงาน/ออกจากระบบ! คุณต้องมา Logout ที่เดิม ณ {TARGET_NAME} (ระยะห่างปัจจุบัน {distance} ม. เกินกว่า {ALLOWED_RADIUS_METERS} ม.)",
+                "message": f"ไม่อนุญาตให้ลงเวลาออกงาน! คุณต้องอยู่ที่ {TARGET_NAME} (ระยะห่างปัจจุบัน {distance} ม. เกินกว่า {ALLOWED_RADIUS_METERS} ม.)",
                 "distance_meters": distance,
                 "allowed_radius_meters": ALLOWED_RADIUS_METERS,
                 "timestamp": current_time_str,
@@ -274,9 +283,9 @@ async def check_out(payload: CheckOutRequest):
         active_log["checkout_distance"] = distance
         active_log["status"] = "COMPLETED"
         try:
-            cin = datetime.strptime(active_log["checkin_time"], "%Y-%m-%d %H:%M:%S")
+            cin = datetime.strptime(active_log["checkin_time"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=BANGKOK_TZ)
             diff = (current_time - cin).total_seconds() / 60.0
-            duration_minutes = round(diff, 1)
+            duration_minutes = max(0.0, round(diff, 1))
             active_log["duration_minutes"] = duration_minutes
         except Exception:
             duration_minutes = 0.0
@@ -296,7 +305,7 @@ async def check_out(payload: CheckOutRequest):
 
     return CheckOutSuccessResponse(
         status="success",
-        message=f"ลงเวลาออกงานและออกจากระบบสำเร็จ ณ {TARGET_NAME}",
+        message=f"ลงเวลาออกงานสำเร็จ ณ {TARGET_NAME}",
         user_id=payload.user_id,
         user_name=payload.user_name,
         distance_meters=distance,
