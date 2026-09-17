@@ -11,7 +11,7 @@ export function getApiBaseUrl(): string {
 
   // 2. If running inside native Android/iOS Capacitor app
   if (Capacitor.isNativePlatform()) {
-    return 'https://attendance-backend.onrender.com';
+    return 'https://attendance-backend-hx6k.onrender.com';
   }
 
   // 3. If running in browser locally (localhost / 127.0.0.1)
@@ -22,5 +22,5 @@ export function getApiBaseUrl(): string {
   }
 
   // 4. Default Production Cloud Backend (Render)
-  return 'https://attendance-backend.onrender.com';
+  return 'https://attendance-backend-hx6k.onrender.com';
 }
