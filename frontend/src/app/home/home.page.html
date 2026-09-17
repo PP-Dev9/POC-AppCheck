@@ -1,4 +1,4 @@
-<ion-header [translucent]="true" class="ion-no-border">
+<ion-header class="ion-no-border">
   <ion-toolbar color="primary">
     <ion-title>
       <div class="toolbar-content">
@@ -6,19 +6,41 @@
         <span class="app-brand-name">CheckNgan</span>
       </div>
     </ion-title>
+
     <ion-buttons slot="end">
-      <ion-button (click)="onLogout()" color="light" class="logout-btn">
-        <ion-icon slot="icon-only" name="log-out-outline"></ion-icon>
+      <ion-button (click)="onCheckOutOrLogout()" title="ออกจากระบบ">
+        <ion-icon name="log-out-outline" slot="icon-only"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
+
+  <!-- Segment Tabs: Visible ONLY for Supervisor / Manager -->
+  <ion-toolbar *ngIf="isSupervisorUser" color="light" class="segment-toolbar">
+    <ion-segment [value]="currentTab" (ionChange)="onTabChange($event)">
+      <ion-segment-button value="checkin">
+        <ion-icon name="finger-print-outline"></ion-icon>
+        <ion-label>เช็คอินของฉัน</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="supervisor">
+        <ion-icon name="people-outline"></ion-icon>
+        <ion-label>
+          รายงานพนักงาน
+          <ion-badge *ngIf="activeWorkingCount > 0" color="success" class="tab-badge">
+            {{ activeWorkingCount }}
+          </ion-badge>
+        </ion-label>
+      </ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding checkin-page-content">
-  <div class="main-wrapper">
+<ion-content [fullscreen]="true" class="checkin-page-content ion-padding">
+  
+  <!-- ================= TAB 1: เช็คอินของฉัน ================= -->
+  <div *ngIf="currentTab === 'checkin'" class="main-wrapper">
 
-    <!-- Card ข้อมูลพนักงานที่ Login อยู่ -->
-    <div class="user-greeting-card" *ngIf="currentUser">
+    <!-- Card ข้อมูลผู้ใช้งานที่เข้าสู่ระบบ -->
+    <div *ngIf="currentUser" class="user-greeting-card">
       <div class="avatar-circle">
         <ion-icon name="person-circle-outline"></ion-icon>
       </div>
@@ -26,13 +48,15 @@
         <span class="welcome-text">ยินดีต้อนรับ</span>
         <h2 class="user-fullname">{{ currentUser.name }}</h2>
         <div class="user-sub-badge">
-          <span class="role-badge">{{ currentUser.role }}</span>
+          <span class="role-badge" [class.supervisor-badge]="isSupervisorUser">
+            {{ currentUser.role }}
+          </span>
           <span class="id-badge">ID: {{ currentUser.user_id }}</span>
         </div>
       </div>
     </div>
 
-    <!-- Card แสดงหมุดสถานที่เป้าหมาย: Nilubon Kitchen & Cafe -->
+    <!-- Card แสดงหมุดสถานที่เป้าหมาย: เช็คอิน -->
     <ion-card class="site-card">
       <ion-card-content>
         <div class="site-header">
@@ -51,11 +75,28 @@
       </ion-card-content>
     </ion-card>
 
-    <!-- ปุ่ม Check-in ทรงกลมขนาดใหญ่ตรงกลาง -->
+    <!-- กล่องแสดงสถานะกำลังเข้างาน & จับเวลา (Active Working Status) -->
+    <div *ngIf="isCheckedIn" class="active-status-box">
+      <div class="status-chip active">
+        <span class="pulse-dot"></span>
+        <span>กำลังปฏิบัติงาน (Checked In)</span>
+      </div>
+      <div class="timer-display">
+        <ion-icon name="timer-outline"></ion-icon>
+        <span class="timer-digits">{{ elapsedTimeString }}</span>
+      </div>
+      <div class="checkin-stamp">
+        เข้างานเมื่อ: <strong>{{ checkInTime }}</strong>
+      </div>
+    </div>
+
+    <!-- ปุ่ม Check-in / Check-out ทรงกลมตรงกลาง -->
     <div class="checkin-action-area">
-      <div class="pulse-ring" [class.active]="isLoading"></div>
+      <div class="pulse-ring" [class.active]="isLoading" [class.checkout-ring]="isCheckedIn"></div>
       
+      <!-- ปุ่มถ้ายังไม่เข้างาน -> กดเพื่อเข้างาน -->
       <ion-button
+        *ngIf="!isCheckedIn"
         shape="round"
         class="checkin-circle-btn"
         (click)="onCheckIn()"
@@ -72,16 +113,68 @@
           <span class="btn-status">{{ loadingMessage }}</span>
         </div>
       </ion-button>
+
+      <!-- ปุ่มถ้าเข้างานแล้ว -> กดเพื่อออกงาน (ต้องอยู่สถานที่เดิม) -->
+      <ion-button
+        *ngIf="isCheckedIn"
+        shape="round"
+        class="checkin-circle-btn checkout-btn"
+        (click)="onCheckOutOrLogout()"
+        [disabled]="isLoading"
+      >
+        <div class="btn-inner" *ngIf="!isLoading">
+          <ion-icon name="log-out-outline" class="btn-icon"></ion-icon>
+          <span class="btn-title">Check-out</span>
+          <span class="btn-subtitle">กดเพื่อลงเวลาออกงาน<br><small>(ต้องอยู่สถานที่เดิม)</small></span>
+        </div>
+
+        <div class="btn-inner loading-inner" *ngIf="isLoading">
+          <ion-spinner name="crescent" color="light"></ion-spinner>
+          <span class="btn-status">{{ loadingMessage }}</span>
+        </div>
+      </ion-button>
     </div>
 
-    <!-- ส่วนล่าง: แสดงพิกัดล่าสุดที่ตรวจจับได้และเวลา -->
+    <!-- แผงทดสอบพิกัด GPS (สำหรับคอมพิวเตอร์ที่ไม่มี GPS ดาวเทียม) -->
+    <div class="mock-location-panel">
+      <div class="mock-header">
+        <ion-icon name="locate-outline"></ion-icon>
+        <span>โหมดทดสอบพิกัด GPS:</span>
+        <button
+          class="mock-toggle-btn"
+          [class.active]="useMockLocation"
+          (click)="useMockLocation = !useMockLocation"
+        >
+          {{ useMockLocation ? 'เปิดใช้งานจำลอง' : 'ใช้ GPS จริง' }}
+        </button>
+      </div>
+
+      <div *ngIf="useMockLocation" class="mock-options">
+        <button
+          class="mock-choice-btn"
+          [class.selected]="mockMode === 'inside'"
+          (click)="mockMode = 'inside'"
+        >
+          📍 อยู่ในร้าน (0 ม.)
+        </button>
+        <button
+          class="mock-choice-btn"
+          [class.selected]="mockMode === 'outside'"
+          (click)="mockMode = 'outside'"
+        >
+          🚶 อยู่นอกร้าน (5 กม.)
+        </button>
+      </div>
+    </div>
+
+    <!-- ส่วนล่าง: แสดงพิกัดล่าสุดและปุ่มออกจากระบบ -->
     <div class="status-section">
       <ion-card *ngIf="lastCoords" class="status-card">
         <ion-card-content>
           <div class="status-row">
             <ion-icon name="navigate-circle-outline" color="primary"></ion-icon>
             <div class="status-text">
-              <span class="label">พิกัด GPS ล่าสุดของคุณ</span>
+              <span class="label">พิกัด GPS ล่าสุด</span>
               <span class="value">
                 Lat: {{ lastCoords.latitude | number:'1.5-5' }}, Lng: {{ lastCoords.longitude | number:'1.5-5' }}
               </span>
@@ -90,10 +183,96 @@
         </ion-card-content>
       </ion-card>
 
-      <button class="logout-link-btn" (click)="onLogout()">
-        <ion-icon name="log-out-outline"></ion-icon> ออกจากระบบ
+      <button class="logout-link-btn" (click)="onCheckOutOrLogout()">
+        <ion-icon name="log-out-outline"></ion-icon>
+        {{ isCheckedIn ? 'ลงเวลาออกงาน & ออกจากระบบ' : 'ออกจากระบบ' }}
       </button>
     </div>
 
   </div>
+
+  <!-- ================= TAB 2: รายงานสำหรับ SUPERVISOR ================= -->
+  <div *ngIf="currentTab === 'supervisor'" class="supervisor-wrapper">
+
+    <!-- แดชบอร์ดสรุปยอด -->
+    <div class="supervisor-summary-grid">
+      <div class="summary-stat-card active-card">
+        <div class="stat-icon">🟢</div>
+        <div class="stat-info">
+          <span class="stat-num">{{ activeWorkingCount }}</span>
+          <span class="stat-label">กำลังเข้างานอยู่</span>
+        </div>
+      </div>
+
+      <div class="summary-stat-card total-card">
+        <div class="stat-icon">📋</div>
+        <div class="stat-info">
+          <span class="stat-num">{{ supervisorLogs.length }}</span>
+          <span class="stat-label">ประวัติลงเวลาทั้งหมด</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- หัวข้อและปุ่มรีเฟรช -->
+    <div class="section-title-row">
+      <h3>
+        <ion-icon name="people-outline"></ion-icon>
+        ประวัติการเข้า-ออกงานของพนักงาน
+      </h3>
+      <button class="refresh-btn" (click)="fetchSupervisorLogs()" [disabled]="isRefreshingSupervisor">
+        <ion-icon name="refresh-outline" [class.spin]="isRefreshingSupervisor"></ion-icon>
+        รีเฟรช
+      </button>
+    </div>
+
+    <!-- รายการประวัติพนักงาน -->
+    <div *ngIf="supervisorLogs.length === 0" class="empty-logs">
+      <ion-icon name="list-outline"></ion-icon>
+      <p>ยังไม่มีบันทึกการลงเวลาของพนักงาน</p>
+    </div>
+
+    <div *ngIf="supervisorLogs.length > 0" class="logs-list">
+      <div *ngFor="let item of supervisorLogs" class="log-card" [class.active-working]="item.status === 'CHECKED_IN'">
+        
+        <div class="log-card-header">
+          <div class="employee-title">
+            <strong>{{ item.user_name || item.user_id }}</strong>
+            <span class="emp-id">({{ item.user_id }})</span>
+          </div>
+
+          <span class="status-badge" [class.working]="item.status === 'CHECKED_IN'" [class.done]="item.status === 'COMPLETED'">
+            {{ item.status === 'CHECKED_IN' ? '🟢 กำลังทำงาน' : '🏁 ออกงานแล้ว' }}
+          </span>
+        </div>
+
+        <div class="log-details-grid">
+          <div class="log-detail-item">
+            <span class="label">🕒 เวลาเข้างาน:</span>
+            <span class="val">{{ item.checkin_time }}</span>
+          </div>
+
+          <div class="log-detail-item">
+            <span class="label">🛑 เวลาออกงาน:</span>
+            <span class="val" *ngIf="item.checkout_time">{{ item.checkout_time }}</span>
+            <span class="val pending" *ngIf="!item.checkout_time">ยังไม่ได้ออกงาน</span>
+          </div>
+
+          <div class="log-detail-item duration-item">
+            <span class="label">⏳ ระยะเวลาทำงาน:</span>
+            <span class="val duration-val">
+              {{ item.duration_minutes !== null ? formatDuration(item.duration_minutes) : 'กำลังนับเวลา...' }}
+            </span>
+          </div>
+
+          <div class="log-detail-item" *ngIf="item.checkin_distance !== undefined">
+            <span class="label">📍 พิกัดเข้างาน:</span>
+            <span class="val">ห่าง {{ item.checkin_distance }} ม.</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
 </ion-content>

@@ -71,6 +71,10 @@
         <div class="demo-accounts-box">
           <p class="demo-title">⚡ เลือกบัญชีทดสอบด่วน (คลิกเพื่อเข้าสู่ระบบ):</p>
           <div class="demo-chips">
+            <ion-chip color="tertiary" (click)="quickLogin('supervisor', 'password123')">
+              <ion-icon name="shield-checkmark-outline"></ion-icon>
+              <ion-label>หัวหน้างาน (supervisor)</ion-label>
+            </ion-chip>
             <ion-chip color="primary" (click)="quickLogin('staff1', 'password123')">
               <ion-icon name="person-circle-outline"></ion-icon>
               <ion-label>พนักงาน (staff1)</ion-label>

@@ -1,14 +1,14 @@
 import math
 from datetime import datetime
-from typing import Optional
-from fastapi import FastAPI, HTTPException, status, Depends
+from typing import Optional, List
+from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 app = FastAPI(
-    title="Nilubon Kitchen & Cafe Attendance API",
-    description="API for Authentication and GPS Geofencing Check-in at Nilubon Kitchen & Cafe",
-    version="2.0.0"
+    title="CheckNgan Attendance API",
+    description="API for Authentication and GPS Geofencing Check-in / Check-out at เช็คอิน",
+    version="2.1.0"
 )
 
 # Enable CORS for Mobile App and Web
@@ -20,19 +20,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Target Location: Nilubon Kitchen & Cafe (70 Soi Udom Kiat, Huai Khwang, Bangkok)
-TARGET_NAME = "Nilubon Kitchen & Cafe"
+# Target Location: เช็คอิน (70 Soi Udom Kiat, Huai Khwang, Bangkok)
+TARGET_NAME = "เช็คอิน"
 TARGET_LAT = 13.7882
 TARGET_LNG = 100.5803
 ALLOWED_RADIUS_METERS = 100.0  # 100m geofence
 
+# In-memory store for attendance logs
+ATTENDANCE_LOGS: List[dict] = []
+
 # Mock User Database
 MOCK_USERS = {
+    "supervisor": {
+        "user_id": "SUP-001",
+        "username": "supervisor",
+        "password": "password123",
+        "name": "วิชาญ ชำนาญการ (Supervisor)",
+        "role": "Supervisor"
+    },
     "admin": {
         "user_id": "EMP-001",
         "username": "admin",
         "password": "password123",
-        "name": "ผู้จัดการร้าน",
+        "name": "ผู้จัดการร้าน (Manager)",
         "role": "Manager"
     },
     "staff1": {
@@ -89,6 +99,24 @@ class CheckInSuccessResponse(BaseModel):
     target_location: dict
 
 
+class CheckOutRequest(BaseModel):
+    user_id: str = Field(..., example="EMP-002")
+    user_name: Optional[str] = Field(None, example="สมชาย ใจบริการ")
+    lat: float = Field(..., example=13.78821)
+    lng: float = Field(..., example=100.58031)
+
+
+class CheckOutSuccessResponse(BaseModel):
+    status: str = "success"
+    message: str
+    user_id: str
+    user_name: Optional[str]
+    distance_meters: float
+    checkout_time: str
+    duration_minutes: float
+    target_location: dict
+
+
 def calculate_haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """Calculate distance in meters using Haversine formula."""
     R = 6371000.0  # Earth radius in meters
@@ -106,7 +134,7 @@ def calculate_haversine_distance(lat1: float, lon1: float, lat2: float, lon2: fl
 @app.get("/")
 def health_check():
     return {
-        "service": "Nilubon Kitchen & Cafe Attendance API",
+        "service": "CheckNgan Attendance API",
         "status": "online",
         "target_location": {
             "name": TARGET_NAME,
@@ -127,7 +155,6 @@ async def login(payload: LoginRequest):
             detail="ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง (Invalid username or password)"
         )
 
-    # In production, sign a JWT token. For demo, return mock auth token.
     token = f"token-{user['user_id']}-{datetime.now().timestamp()}"
 
     return LoginResponse(
@@ -148,7 +175,7 @@ async def login(payload: LoginRequest):
     "/api/checkin",
     response_model=CheckInSuccessResponse,
     status_code=status.HTTP_200_OK,
-    summary="GPS Check-in at Nilubon Kitchen & Cafe"
+    summary="GPS Check-in at Location"
 )
 async def check_in(payload: CheckInRequest):
     distance = calculate_haversine_distance(
@@ -161,6 +188,20 @@ async def check_in(payload: CheckInRequest):
     current_time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     if distance <= ALLOWED_RADIUS_METERS:
+        # Save attendance log
+        log_entry = {
+            "id": len(ATTENDANCE_LOGS) + 1,
+            "user_id": payload.user_id,
+            "user_name": payload.user_name,
+            "checkin_time": current_time_str,
+            "checkout_time": None,
+            "duration_minutes": None,
+            "status": "CHECKED_IN",
+            "checkin_distance": distance,
+            "checkout_distance": None
+        }
+        ATTENDANCE_LOGS.append(log_entry)
+
         return CheckInSuccessResponse(
             status="success",
             message=f"ลงเวลาเข้างานสำเร็จ ณ {TARGET_NAME}",
@@ -179,10 +220,137 @@ async def check_in(payload: CheckInRequest):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={
                 "status": "failed",
-                "message": f"อยู่นอกพื้นที่ร้าน {TARGET_NAME}",
+                "message": f"อยู่นอกพื้นที่ {TARGET_NAME}",
                 "distance_meters": distance,
                 "allowed_radius_meters": ALLOWED_RADIUS_METERS,
                 "timestamp": current_time_str,
                 "target_name": TARGET_NAME
             }
         )
+
+
+# --- Check-out Endpoint (Must be at the same location) ---
+@app.post(
+    "/api/checkout",
+    response_model=CheckOutSuccessResponse,
+    status_code=status.HTTP_200_OK,
+    summary="GPS Check-out at Location (Must be at the same location)"
+)
+async def check_out(payload: CheckOutRequest):
+    distance = calculate_haversine_distance(
+        lat1=payload.lat,
+        lon1=payload.lng,
+        lat2=TARGET_LAT,
+        lon2=TARGET_LNG
+    )
+
+    current_time = datetime.now()
+    current_time_str = current_time.strftime("%Y-%m-%d %H:%M:%S")
+
+    # Constraint: Must logout at the same location!
+    if distance > ALLOWED_RADIUS_METERS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "status": "failed",
+                "message": f"ไม่อนุญาตให้ออกงาน/ออกจากระบบ! คุณต้องมา Logout ที่เดิม ณ {TARGET_NAME} (ระยะห่างปัจจุบัน {distance} ม. เกินกว่า {ALLOWED_RADIUS_METERS} ม.)",
+                "distance_meters": distance,
+                "allowed_radius_meters": ALLOWED_RADIUS_METERS,
+                "timestamp": current_time_str,
+                "target_name": TARGET_NAME
+            }
+        )
+
+    # Find the user's latest active checkin
+    active_log = None
+    for log in reversed(ATTENDANCE_LOGS):
+        if log["user_id"] == payload.user_id and log["status"] == "CHECKED_IN":
+            active_log = log
+            break
+
+    duration_minutes = 0.0
+    if active_log:
+        active_log["checkout_time"] = current_time_str
+        active_log["checkout_distance"] = distance
+        active_log["status"] = "COMPLETED"
+        try:
+            cin = datetime.strptime(active_log["checkin_time"], "%Y-%m-%d %H:%M:%S")
+            diff = (current_time - cin).total_seconds() / 60.0
+            duration_minutes = round(diff, 1)
+            active_log["duration_minutes"] = duration_minutes
+        except Exception:
+            duration_minutes = 0.0
+    else:
+        log_entry = {
+            "id": len(ATTENDANCE_LOGS) + 1,
+            "user_id": payload.user_id,
+            "user_name": payload.user_name,
+            "checkin_time": current_time_str,
+            "checkout_time": current_time_str,
+            "duration_minutes": 0.0,
+            "status": "COMPLETED",
+            "checkin_distance": distance,
+            "checkout_distance": distance
+        }
+        ATTENDANCE_LOGS.append(log_entry)
+
+    return CheckOutSuccessResponse(
+        status="success",
+        message=f"ลงเวลาออกงานและออกจากระบบสำเร็จ ณ {TARGET_NAME}",
+        user_id=payload.user_id,
+        user_name=payload.user_name,
+        distance_meters=distance,
+        checkout_time=current_time_str,
+        duration_minutes=duration_minutes,
+        target_location={
+            "name": TARGET_NAME,
+            "lat": TARGET_LAT,
+            "lng": TARGET_LNG
+        }
+    )
+
+
+# --- Get User Attendance Logs ---
+@app.get("/api/logs/{user_id}", summary="ดึงประวัติการลงเวลาของพนักงาน")
+async def get_user_logs(user_id: str):
+    user_logs = [log for log in reversed(ATTENDANCE_LOGS) if log["user_id"] == user_id]
+    active_entry = next((log for log in ATTENDANCE_LOGS if log["user_id"] == user_id and log["status"] == "CHECKED_IN"), None)
+    return {
+        "status": "success",
+        "user_id": user_id,
+        "is_checked_in": active_entry is not None,
+        "active_checkin": active_entry,
+        "total_records": len(user_logs),
+        "logs": user_logs
+    }
+
+
+# --- Supervisor All Logs Endpoint ---
+@app.get("/api/supervisor/logs", summary="ดึงประวัติการลงเวลาของพนักงานทุกคน (เฉพาะ Supervisor/Manager)")
+async def get_supervisor_all_logs(role: Optional[str] = None, user_id: Optional[str] = None):
+    # Check if caller is supervisor or manager
+    is_supervisor = False
+    if role in ["Supervisor", "Manager"]:
+        is_supervisor = True
+    elif user_id:
+        for u in MOCK_USERS.values():
+            if u["user_id"] == user_id and u["role"] in ["Supervisor", "Manager"]:
+                is_supervisor = True
+                break
+
+    if not is_supervisor:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="สิทธิ์ไม่ถูกต้อง! หน้านี้สำหรับหัวหน้างาน (Supervisor/Manager) เท่านั้น"
+        )
+
+    all_logs = list(reversed(ATTENDANCE_LOGS))
+    active_count = sum(1 for log in ATTENDANCE_LOGS if log["status"] == "CHECKED_IN")
+
+    return {
+        "status": "success",
+        "total_records": len(all_logs),
+        "active_working_count": active_count,
+        "logs": all_logs
+    }
+
