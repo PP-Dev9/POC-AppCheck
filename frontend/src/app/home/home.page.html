@@ -203,21 +203,76 @@
   <!-- ================= TAB 2: รายงานสำหรับ SUPERVISOR ================= -->
   <div *ngIf="currentTab === 'supervisor'" class="supervisor-wrapper">
 
-    <!-- แดชบอร์ดสรุปยอด -->
+    <!-- แผงเลือกวันที่ดูรายงาน (เลือกดูเป็นวันๆ ภายในเดือน) -->
+    <div class="date-navigator-card">
+      <div class="date-header-row">
+        <div class="date-title-group">
+          <ion-icon name="calendar-outline"></ion-icon>
+          <span>เลือกวันที่ดูรายงาน:</span>
+        </div>
+        <button
+          class="today-btn"
+          [class.active]="isTodaySelected()"
+          (click)="selectToday()"
+        >
+          <ion-icon name="today-outline"></ion-icon>
+          วันนี้
+        </button>
+      </div>
+
+      <div class="date-picker-row">
+        <button class="nav-arrow-btn" (click)="navigateDate(-1)" title="วันก่อนหน้า">
+          <ion-icon name="chevron-back-outline"></ion-icon>
+        </button>
+
+        <div class="date-input-container">
+          <input
+            type="date"
+            class="custom-date-input"
+            [value]="selectedDate"
+            [min]="minMonthDate"
+            [max]="maxMonthDate"
+            (change)="onDateChange($event)"
+          />
+          <div class="date-display-badge">
+            <span class="date-badge-text">{{ getThaiFormattedDate(selectedDate) }}</span>
+          </div>
+        </div>
+
+        <button class="nav-arrow-btn" (click)="navigateDate(1)" title="วันถัดไป">
+          <ion-icon name="chevron-forward-outline"></ion-icon>
+        </button>
+      </div>
+
+      <div class="month-scope-badge">
+        <ion-icon name="information-circle-outline"></ion-icon>
+        <span>ช่วงวันที่เลือกดู: เดือน{{ getThaiMonthName(selectedDate) }}</span>
+      </div>
+    </div>
+
+    <!-- แดชบอร์ดสรุปยอดของวันที่เลือก -->
     <div class="supervisor-summary-grid">
-      <div class="summary-stat-card active-card">
+      <div class="summary-stat-card active-card" *ngIf="isTodaySelected()">
         <div class="stat-icon">🟢</div>
         <div class="stat-info">
           <span class="stat-num">{{ activeWorkingCount }}</span>
-          <span class="stat-label">กำลังเข้างานอยู่</span>
+          <span class="stat-label">กำลังทำงาน (ขณะนี้)</span>
         </div>
       </div>
 
       <div class="summary-stat-card total-card">
-        <div class="stat-icon">📋</div>
+        <div class="stat-icon">👥</div>
         <div class="stat-info">
-          <span class="stat-num">{{ supervisorLogs.length }}</span>
-          <span class="stat-label">ประวัติลงเวลาทั้งหมด</span>
+          <span class="stat-num">{{ filteredSupervisorLogs.length }}</span>
+          <span class="stat-label">พนักงานในวันที่เลือก</span>
+        </div>
+      </div>
+
+      <div class="summary-stat-card time-card">
+        <div class="stat-icon">⏱️</div>
+        <div class="stat-info">
+          <span class="stat-num">{{ formatDuration(dailyTotalDurationMinutes) }}</span>
+          <span class="stat-label">เวลางานรวมในวันนั้น</span>
         </div>
       </div>
     </div>
@@ -226,7 +281,7 @@
     <div class="section-title-row">
       <h3>
         <ion-icon name="people-outline"></ion-icon>
-        ประวัติการเข้า-ออกงานของพนักงาน
+        บันทึกเวลาพนักงาน ({{ filteredSupervisorLogs.length }} รายการ)
       </h3>
       <button class="refresh-btn" (click)="fetchSupervisorLogs()" [disabled]="isRefreshingSupervisor">
         <ion-icon name="refresh-outline" [class.spin]="isRefreshingSupervisor"></ion-icon>
@@ -234,14 +289,15 @@
       </button>
     </div>
 
-    <!-- รายการประวัติพนักงาน -->
-    <div *ngIf="supervisorLogs.length === 0" class="empty-logs">
-      <ion-icon name="list-outline"></ion-icon>
-      <p>ยังไม่มีบันทึกการลงเวลาของพนักงาน</p>
+    <!-- รายการประวัติพนักงานประจำวันที่เลือก -->
+    <div *ngIf="filteredSupervisorLogs.length === 0" class="empty-logs">
+      <ion-icon name="calendar-outline"></ion-icon>
+      <p>ไม่มีบันทึกการลงเวลาใน{{ getThaiFormattedDate(selectedDate) }}</p>
+      <small>ลองเปลี่ยนวันที่หรือกดปุ่ม "วันนี้" เพื่อดูรายการปัจจุบัน</small>
     </div>
 
-    <div *ngIf="supervisorLogs.length > 0" class="logs-list">
-      <div *ngFor="let item of supervisorLogs" class="log-card" [class.active-working]="item.status === 'CHECKED_IN'">
+    <div *ngIf="filteredSupervisorLogs.length > 0" class="logs-list">
+      <div *ngFor="let item of filteredSupervisorLogs" class="log-card" [class.active-working]="item.status === 'CHECKED_IN'">
         
         <div class="log-card-header">
           <div class="employee-title">

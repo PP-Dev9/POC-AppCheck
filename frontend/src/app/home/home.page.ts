@@ -40,6 +40,11 @@ import {
   refreshOutline,
   briefcaseOutline,
   shieldCheckmarkOutline,
+  calendarOutline,
+  chevronBackOutline,
+  chevronForwardOutline,
+  informationCircleOutline,
+  todayOutline,
 } from 'ionicons/icons';
 import { Geolocation, PositionOptions } from '@capacitor/geolocation';
 import { firstValueFrom } from 'rxjs';
@@ -108,6 +113,13 @@ export class HomePage implements OnInit, OnDestroy {
   activeWorkingCount = 0;
   isRefreshingSupervisor = false;
 
+  // Supervisor Date Filter
+  selectedDate: string = '';
+  minMonthDate: string = '';
+  maxMonthDate: string = '';
+  filteredSupervisorLogs: AttendanceLog[] = [];
+  dailyTotalDurationMinutes: number = 0;
+
   // Mock test location for testing without physical GPS device
   useMockLocation = false;
   mockMode: 'inside' | 'outside' = 'inside';
@@ -138,6 +150,11 @@ export class HomePage implements OnInit, OnDestroy {
       refreshOutline,
       briefcaseOutline,
       shieldCheckmarkOutline,
+      calendarOutline,
+      chevronBackOutline,
+      chevronForwardOutline,
+      informationCircleOutline,
+      todayOutline,
     });
   }
 
@@ -176,6 +193,10 @@ export class HomePage implements OnInit, OnDestroy {
 
     this.currentTab = 'checkin';
 
+    // Initialize supervisor date filter to today
+    this.selectedDate = this.getTodayDateString();
+    this.updateMonthBoundaries(this.selectedDate);
+
     // Fetch personal attendance logs
     await this.fetchUserLogs();
 
@@ -195,6 +216,8 @@ export class HomePage implements OnInit, OnDestroy {
     this.activeLog = null;
     this.logs = [];
     this.supervisorLogs = [];
+    this.filteredSupervisorLogs = [];
+    this.dailyTotalDurationMinutes = 0;
     this.activeWorkingCount = 0;
     this.elapsedTimeString = '00:00:00';
     this.isLoading = false;
@@ -207,6 +230,118 @@ export class HomePage implements OnInit, OnDestroy {
     this.currentTab = event.detail.value;
     if (this.currentTab === 'supervisor') {
       this.fetchSupervisorLogs();
+    }
+  }
+
+  /**
+   * Supervisor Date Navigation & Filter
+   */
+  getTodayDateString(): string {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  updateMonthBoundaries(dateStr: string) {
+    if (!dateStr) return;
+    const [yStr, mStr] = dateStr.split('-');
+    const y = parseInt(yStr, 10);
+    const m = parseInt(mStr, 10);
+    this.minMonthDate = `${yStr}-${mStr}-01`;
+    const lastDay = new Date(y, m, 0).getDate();
+    this.maxMonthDate = `${yStr}-${mStr}-${String(lastDay).padStart(2, '0')}`;
+  }
+
+  onDateChange(event: any) {
+    const val = event.target?.value;
+    if (val) {
+      this.selectedDate = val;
+      this.updateMonthBoundaries(this.selectedDate);
+      this.updateFilteredLogs();
+    }
+  }
+
+  navigateDate(deltaDays: number) {
+    if (!this.selectedDate) {
+      this.selectedDate = this.getTodayDateString();
+    }
+    const [y, m, d] = this.selectedDate.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, d + deltaDays);
+    const newY = dateObj.getFullYear();
+    const newM = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const newD = String(dateObj.getDate()).padStart(2, '0');
+    const newDateStr = `${newY}-${newM}-${newD}`;
+
+    // Restrict within the currently selected month
+    if (newDateStr >= this.minMonthDate && newDateStr <= this.maxMonthDate) {
+      this.selectedDate = newDateStr;
+      this.updateFilteredLogs();
+    } else {
+      this.showToast(
+        `สามารถเลือกดูได้เฉพาะภายในเดือน ${this.getThaiMonthName(this.selectedDate)} ครับ`,
+        'warning',
+        2500
+      );
+    }
+  }
+
+  selectToday() {
+    this.selectedDate = this.getTodayDateString();
+    this.updateMonthBoundaries(this.selectedDate);
+    this.updateFilteredLogs();
+  }
+
+  isTodaySelected(): boolean {
+    return this.selectedDate === this.getTodayDateString();
+  }
+
+  updateFilteredLogs() {
+    if (!this.selectedDate) {
+      this.filteredSupervisorLogs = this.supervisorLogs;
+    } else {
+      this.filteredSupervisorLogs = this.supervisorLogs.filter((log) =>
+        log.checkin_time?.startsWith(this.selectedDate)
+      );
+    }
+
+    // Calculate total minutes worked for employees on this day
+    this.dailyTotalDurationMinutes = this.filteredSupervisorLogs.reduce((acc, log) => {
+      return acc + (log.duration_minutes || 0);
+    }, 0);
+  }
+
+  getThaiFormattedDate(dateStr: string): string {
+    if (!dateStr) return '';
+    try {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const dateObj = new Date(y, m - 1, d);
+      const days = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+      const months = [
+        'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+        'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
+      ];
+      const dayName = days[dateObj.getDay()];
+      const monthName = months[dateObj.getMonth()];
+      const thaiYear = y + 543;
+      return `วัน${dayName}ที่ ${d} ${monthName} ${thaiYear}`;
+    } catch {
+      return dateStr;
+    }
+  }
+
+  getThaiMonthName(dateStr: string): string {
+    if (!dateStr) return '';
+    try {
+      const [y, m] = dateStr.split('-').map(Number);
+      const months = [
+        'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+        'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+      ];
+      return `${months[m - 1]} ${y + 543}`;
+    } catch {
+      return dateStr;
     }
   }
 
@@ -270,6 +405,7 @@ export class HomePage implements OnInit, OnDestroy {
       if (res && res.status === 'success') {
         this.supervisorLogs = res.logs || [];
         this.activeWorkingCount = res.active_working_count || 0;
+        this.updateFilteredLogs();
       }
     } catch (err) {
       console.warn('Could not fetch supervisor logs:', err);

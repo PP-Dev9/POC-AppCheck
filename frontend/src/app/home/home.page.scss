@@ -488,19 +488,155 @@
   padding-bottom: 2rem;
 }
 
+/* Date Navigator Card */
+.date-navigator-card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+
+  .date-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+
+    .date-title-group {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #1e293b;
+
+      ion-icon {
+        color: var(--ion-color-primary);
+        font-size: 1.15rem;
+      }
+    }
+
+    .today-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+      padding: 0.25rem 0.65rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      ion-icon {
+        font-size: 0.85rem;
+      }
+
+      &.active {
+        background: #eff6ff;
+        color: #2563eb;
+        border-color: #93c5fd;
+        font-weight: 700;
+      }
+
+      &:active {
+        transform: scale(0.96);
+      }
+    }
+  }
+
+  .date-picker-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+
+    .nav-arrow-btn {
+      width: 40px;
+      height: 40px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      color: #334155;
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+
+      &:active {
+        background: #e2e8f0;
+        transform: scale(0.94);
+      }
+    }
+
+    .date-input-container {
+      flex: 1;
+      position: relative;
+      cursor: pointer;
+
+      .custom-date-input {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+        z-index: 2;
+      }
+
+      .date-display-badge {
+        background: linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%);
+        border: 1.5px solid #bfdbfe;
+        border-radius: 12px;
+        padding: 0.55rem 0.8rem;
+        text-align: center;
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.02);
+
+        .date-badge-text {
+          font-size: 0.92rem;
+          font-weight: 700;
+          color: #1e3a8a;
+          letter-spacing: -0.2px;
+        }
+      }
+    }
+  }
+
+  .month-scope-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    margin-top: 0.65rem;
+    font-size: 0.72rem;
+    color: #64748b;
+
+    ion-icon {
+      color: #94a3b8;
+      font-size: 0.9rem;
+    }
+  }
+}
+
 .supervisor-summary-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 0.65rem;
   margin-bottom: 1rem;
 
   .summary-stat-card {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.65rem;
     background: #ffffff;
     border-radius: 14px;
-    padding: 0.85rem;
+    padding: 0.75rem 0.8rem;
     border: 1px solid #e2e8f0;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 
@@ -510,6 +646,10 @@
 
     &.total-card {
       border-left: 4px solid #3b82f6;
+    }
+
+    &.time-card {
+      border-left: 4px solid #f59e0b;
     }
 
     .stat-icon {

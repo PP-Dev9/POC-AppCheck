@@ -336,7 +336,12 @@ async def get_user_logs(user_id: str):
 
 # --- Supervisor All Logs Endpoint ---
 @app.get("/api/supervisor/logs", summary="ดึงประวัติการลงเวลาของพนักงานทุกคน (เฉพาะ Supervisor/Manager)")
-async def get_supervisor_all_logs(role: Optional[str] = None, user_id: Optional[str] = None):
+async def get_supervisor_all_logs(
+    role: Optional[str] = None,
+    user_id: Optional[str] = None,
+    date: Optional[str] = None,
+    month: Optional[str] = None
+):
     # Check if caller is supervisor or manager
     is_supervisor = False
     if role in ["Supervisor", "Manager"]:
@@ -354,12 +359,21 @@ async def get_supervisor_all_logs(role: Optional[str] = None, user_id: Optional[
         )
 
     all_logs = list(reversed(ATTENDANCE_LOGS))
+
+    # Filter by date (YYYY-MM-DD) or month (YYYY-MM) if specified
+    if date:
+        all_logs = [log for log in all_logs if log.get("checkin_time", "").startswith(date)]
+    elif month:
+        all_logs = [log for log in all_logs if log.get("checkin_time", "").startswith(month)]
+
     active_count = sum(1 for log in ATTENDANCE_LOGS if log["status"] == "CHECKED_IN")
 
     return {
         "status": "success",
         "total_records": len(all_logs),
         "active_working_count": active_count,
+        "selected_date": date,
+        "selected_month": month,
         "logs": all_logs
     }
 
