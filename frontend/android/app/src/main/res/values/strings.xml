@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">CheckNgan</string>
+    <string name="title_activity_main">CheckNgan</string>
+    <string name="package_name">com.checkngan.app</string>
+    <string name="custom_url_scheme">com.checkngan.app</string>
+</resources>

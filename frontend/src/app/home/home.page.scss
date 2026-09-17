@@ -1,0 +1,326 @@
+.checkin-page-content {
+  --background: #f8fafc;
+}
+
+.toolbar-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 1.25rem;
+
+  .app-brand-name {
+    letter-spacing: 0.5px;
+  }
+}
+
+.main-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 86vh;
+  padding: 0.5rem 0;
+}
+
+/* Logged-in User Greeting Card */
+.user-greeting-card {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  background: #ffffff;
+  padding: 0.85rem 1.1rem;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e2e8f0;
+  margin-bottom: 0.75rem;
+
+  .avatar-circle {
+    font-size: 2.8rem;
+    color: var(--ion-color-primary);
+    display: flex;
+    align-items: center;
+  }
+
+  .user-details {
+    display: flex;
+    flex-direction: column;
+
+    .welcome-text {
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+
+    .user-fullname {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0.1rem 0 0.3rem;
+    }
+
+    .user-sub-badge {
+      display: flex;
+      gap: 0.4rem;
+
+      .role-badge {
+        font-size: 0.7rem;
+        background: #e0f2fe;
+        color: #0369a1;
+        padding: 0.15rem 0.5rem;
+        border-radius: 10px;
+        font-weight: 600;
+      }
+
+      .id-badge {
+        font-size: 0.7rem;
+        background: #f1f5f9;
+        color: #475569;
+        padding: 0.15rem 0.5rem;
+        border-radius: 10px;
+      }
+    }
+  }
+}
+
+/* Target Site Card: Nilubon Kitchen & Cafe */
+.site-card {
+  width: 100%;
+  max-width: 380px;
+  margin: 0;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  background: #ffffff;
+
+  .site-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.9rem;
+
+    .icon-circle {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(var(--ion-color-primary-rgb), 0.15) 0%, rgba(var(--ion-color-secondary-rgb), 0.2) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 0.2rem;
+
+      ion-icon {
+        font-size: 1.8rem;
+        color: var(--ion-color-primary);
+      }
+    }
+
+    .site-info {
+      .site-tag {
+        font-size: 0.68rem;
+        color: var(--ion-color-primary);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      h3 {
+        margin: 0.15rem 0 0.1rem;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #0f172a;
+      }
+
+      .site-th-name {
+        font-size: 0.85rem;
+        color: #475569;
+        margin: 0 0 0.2rem;
+        font-weight: 500;
+      }
+
+      .site-address {
+        font-size: 0.78rem;
+        color: #94a3b8;
+        margin: 0 0 0.4rem;
+      }
+
+      .radius-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.78rem;
+        background: #f0fdf4;
+        color: #166534;
+        padding: 0.2rem 0.6rem;
+        border-radius: 12px;
+        border: 1px solid #bbf7d0;
+
+        ion-icon {
+          font-size: 0.9rem;
+        }
+      }
+    }
+  }
+}
+
+/* Check-in Center Button */
+.checkin-action-area {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 1.5rem 0;
+
+  .pulse-ring {
+    position: absolute;
+    width: 230px;
+    height: 230px;
+    border-radius: 50%;
+    background: rgba(var(--ion-color-primary-rgb), 0.15);
+    z-index: 1;
+    animation: pulse 2.2s infinite ease-out;
+
+    &.active {
+      animation: pulse-fast 1.2s infinite ease-in-out;
+      background: rgba(var(--ion-color-primary-rgb), 0.25);
+    }
+  }
+
+  .checkin-circle-btn {
+    --size: 195px;
+    width: var(--size);
+    height: var(--size);
+    --border-radius: 50%;
+    z-index: 2;
+    box-shadow: 0 12px 30px rgba(var(--ion-color-primary-rgb), 0.38);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:active {
+      transform: scale(0.95);
+      box-shadow: 0 6px 16px rgba(var(--ion-color-primary-rgb), 0.3);
+    }
+
+    .btn-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.3rem;
+
+      .btn-icon {
+        font-size: 3.4rem;
+      }
+
+      .btn-title {
+        font-size: 1.35rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+      }
+
+      .btn-subtitle {
+        font-size: 0.78rem;
+        opacity: 0.85;
+      }
+    }
+
+    .loading-inner {
+      gap: 0.7rem;
+
+      .btn-status {
+        font-size: 0.85rem;
+        text-align: center;
+        max-width: 140px;
+        line-height: 1.2;
+      }
+    }
+  }
+}
+
+/* Status Section */
+.status-section {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+
+  .status-card {
+    width: 100%;
+    margin: 0;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    border: 1px solid #e2e8f0;
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+
+      ion-icon {
+        font-size: 2rem;
+      }
+
+      .status-text {
+        display: flex;
+        flex-direction: column;
+
+        .label {
+          font-size: 0.75rem;
+          color: #64748b;
+        }
+
+        .value {
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: #0f172a;
+        }
+      }
+    }
+  }
+
+  .logout-link-btn {
+    background: none;
+    border: none;
+    color: #ef4444;
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    cursor: pointer;
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+
+    &:active {
+      background: #fee2e2;
+    }
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(1.15);
+    opacity: 0;
+  }
+}
+
+@keyframes pulse-fast {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.15);
+    opacity: 0;
+  }
+}

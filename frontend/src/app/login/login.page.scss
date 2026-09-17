@@ -1,0 +1,133 @@
+.login-content {
+  --background: linear-gradient(180deg, #f0f4f8 0%, #e2e8f0 100%);
+}
+
+.login-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 92vh;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.brand-section {
+  text-align: center;
+  margin-bottom: 1.5rem;
+
+  .logo-circle {
+    width: 76px;
+    height: 76px;
+    border-radius: 22px;
+    background: linear-gradient(135deg, var(--ion-color-primary) 0%, #1e40af 100%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 25px rgba(var(--ion-color-primary-rgb), 0.35);
+    margin-bottom: 0.8rem;
+
+    ion-icon {
+      font-size: 2.6rem;
+      color: #ffffff;
+    }
+  }
+
+  .brand-title {
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+  }
+
+  .brand-subtitle {
+    font-size: 0.95rem;
+    color: #64748b;
+    margin: 0.2rem 0 0.5rem;
+  }
+
+  .badge-tag {
+    display: inline-block;
+    padding: 0.25rem 0.8rem;
+    background: rgba(var(--ion-color-primary-rgb), 0.12);
+    color: var(--ion-color-primary);
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+}
+
+.login-card {
+  width: 100%;
+  border-radius: 18px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  margin: 0;
+  background: #ffffff;
+
+  ion-card-header {
+    padding-bottom: 0.5rem;
+
+    ion-card-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #1e293b;
+    }
+  }
+
+  .custom-input-item {
+    --background: #f8fafc;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    --border-color: #e2e8f0;
+
+    ion-icon {
+      margin-right: 0.5rem;
+      font-size: 1.3rem;
+    }
+  }
+
+  .submit-area {
+    margin-top: 1.5rem;
+
+    .login-btn {
+      --box-shadow: 0 8px 20px rgba(var(--ion-color-primary-rgb), 0.3);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+  }
+}
+
+.demo-accounts-box {
+  margin-top: 1.5rem;
+  padding-top: 1.2rem;
+  border-top: 1px dashed #cbd5e1;
+
+  .demo-title {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin: 0 0 0.6rem;
+    font-weight: 500;
+  }
+
+  .demo-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+
+    ion-chip {
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: transform 0.15s ease;
+
+      &:active {
+        transform: scale(0.95);
+      }
+    }
+  }
+}
+
+.footer-note {
+  margin-top: 1.5rem;
+  color: #94a3b8;
+  text-align: center;
+}
