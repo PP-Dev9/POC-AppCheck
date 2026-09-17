@@ -17,7 +17,6 @@ services:
     runtime: static
     buildCommand: cd frontend && npm install --legacy-peer-deps && npm run build
     staticPublishPath: ./frontend/www
-    plan: free
     routes:
       - type: rewrite
         source: /*
