@@ -18,7 +18,6 @@ services:
     buildCommand: cd frontend && npm install --legacy-peer-deps && npm run build
     staticPublishPath: ./frontend/www
     plan: free
-    region: singapore
     routes:
       - type: rewrite
         source: /*
