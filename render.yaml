@@ -7,6 +7,7 @@ services:
     dockerContext: ./backend
     plan: free
     region: singapore
+    autoDeployTrigger: commit
     envVars:
       - key: PYTHONUNBUFFERED
         value: "1"
@@ -17,7 +18,9 @@ services:
     runtime: static
     buildCommand: cd frontend && npm install --legacy-peer-deps && npm run build
     staticPublishPath: ./frontend/www
+    autoDeployTrigger: commit
     routes:
       - type: rewrite
         source: /*
         destination: /index.html
+
